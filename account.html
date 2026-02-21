@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Account — amamus34</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/app.js"></script>
+</head>
+<body>
+  <div id="header-placeholder"></div>
+
+  <main class="form-page">
+    <h1>My Account</h1>
+    <div id="account-info">
+      <p><strong>Вы вошли как:</strong> <span id="account-username">—</span></p>
+      <p><a href="#" id="logout-link">Выйти</a></p>
+      <p><a href="upload.html">Upload</a> — загрузить пост</p>
+    </div>
+    <div id="account-login-required" style="display: none;">
+      <p>Вы не вошли.</p>
+      <p><a href="login.html">Login</a> — войти</p>
+      <p><a href="register.html">Sign Up</a> — зарегистрироваться</p>
+    </div>
+  </main>
+
+  <script>
+    initHeader('');
+    var user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+    if (user) {
+      document.getElementById('account-username').textContent = user.username;
+      document.getElementById('logout-link').onclick = function(e) {
+        e.preventDefault();
+        if (typeof logoutUser === 'function') logoutUser();
+        location.href = 'index.html';
+      };
+    } else {
+      document.getElementById('account-info').style.display = 'none';
+      document.getElementById('account-login-required').style.display = 'block';
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Comments — amamus34</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/app.js"></script>
+</head>
+<body>
+  <div id="header-placeholder"></div>
+
+  <main class="layout-with-sidebar" style="max-width: 900px; margin: 20px auto;">
+    <h2 style="margin: 0 0 15px 15px;">Recent Comments</h2>
+    <div id="comments-list" style="width: 100%; padding: 0 15px;">
+      <p>Загрузка...</p>
+    </div>
+  </main>
+
+  <script>
+    initHeader('comments.html');
+
+    // Safe DOM building - prevents XSS
+    function createCommentElement(c) {
+      var div = document.createElement('div');
+      div.className = 'comment-item';
+
+      var header = document.createElement('div');
+      header.className = 'comment-header';
+      // Use textContent to prevent XSS
+      header.textContent = (c.author_name || 'Anonymous');
+      var span = document.createElement('span');
+      span.style.color = '#777';
+      span.textContent = ' >> #' + (c.random_id || c.id).substring(0, 8);
+      header.appendChild(span);
+
+      var meta = document.createElement('div');
+      meta.className = 'comment-meta';
+      var time = c.created_at ? new Date(c.created_at).toLocaleString() : '';
+      meta.textContent = time + ' — ';
+      var link = document.createElement('a');
+      link.href = 'post.html?id=' + encodeURIComponent(c.post_id);
+      link.textContent = 'К посту';
+      meta.appendChild(link);
+
+      var body = document.createElement('div');
+      body.className = 'comment-body';
+      // Server already sanitizes, but we use textContent for safety
+      body.textContent = (c.content || '').substring(0, 200);
+      if (c.content && c.content.length > 200) {
+        body.textContent += '…';
+      }
+
+      div.appendChild(header);
+      div.appendChild(meta);
+      div.appendChild(body);
+      return div;
+    }
+
+    // Fetch comments - use Supabase directly for production compatibility
+    function loadComments() {
+      if (window.sb) {
+        window.sb.from('post_comments').select('id, post_id, author_name, content, random_id, created_at').order('created_at', { ascending: false }).limit(50)
+          .then(function(result) {
+            if (result.error) throw new Error(result.error.message);
+            var list = document.getElementById('comments-list');
+            list.innerHTML = '';
+            var comments = result.data || [];
+            if (comments.length === 0) {
+              list.textContent = 'Комментариев пока нет.';
+              return;
+            }
+            comments.forEach(function(c) {
+              list.appendChild(createCommentElement(c));
+            });
+          })
+          .catch(function(err) {
+            document.getElementById('comments-list').textContent = 'Ошибка загрузки: ' + (err.message || '');
+          });
+      } else if (window.IS_LOCAL && API_URL) {
+        // Fallback to API for local development only
+        fetch(API_URL + '/api/comments')
+          .then(function(res) {
+            if (!res.ok) throw new Error('Server error');
+            return res.json();
+          })
+          .then(function(data) {
+            var list = document.getElementById('comments-list');
+            list.innerHTML = '';
+            var comments = data.comments || [];
+            if (comments.length === 0) {
+              list.textContent = 'Комментариев пока нет.';
+              return;
+            }
+            comments.forEach(function(c) {
+              list.appendChild(createCommentElement(c));
+            });
+          })
+          .catch(function(err) {
+            document.getElementById('comments-list').textContent = 'Ошибка загрузки: ' + (err.message || '');
+          });
+      } else {
+        document.getElementById('comments-list').textContent = 'Ошибка загрузки: Supabase не подключён';
+      }
+    }
+    loadComments();
+  </script>
+</body>
+</html>

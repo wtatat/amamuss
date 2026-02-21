@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>В ЧЕСТЬ ВЕЛИКОГО AMAMUS</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            margin: 0; padding: 0; background-color: #aae5a4; color: #000;
+            font-family: "Verdana", sans-serif; text-align: center;
+            overflow-x: hidden; cursor: crosshair;
+        }
+        .header-bar {
+            background-color: #aae5a4; height: 60px; width: 100%;
+            position: fixed; top: 0; left: 0; z-index: 10000;
+            display: flex; align-items: center; justify-content: space-between; padding: 0 20px;
+            border-bottom: 1px solid #7cb576;
+        }
+        .header-logo { color: #000099; font-weight: bold; font-size: 1.5em; text-decoration: none; }
+        .header-nav { color: #000099; font-size: 0.9em; text-decoration: underline; }
+        #snow-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9999; }
+        .manul { position: absolute; pointer-events: none; opacity: 0.6; user-select: none; }
+        .manul-bg { animation: fall linear infinite; }
+        .manul-cursor { animation: fall-and-fade linear forwards; }
+        @keyframes fall {
+            0% { transform: translateY(-150px) rotate(0deg); }
+            100% { transform: translateY(110vh) rotate(360deg); }
+        }
+        @keyframes fall-and-fade {
+            0% { transform: translateY(0) rotate(0deg); opacity: 0.9; }
+            100% { transform: translateY(500px) rotate(180deg); opacity: 0; }
+        }
+        .section {
+            min-height: 100vh; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; padding: 80px 10px 40px 10px;
+            position: relative; z-index: 10; border-bottom: 1px solid #7cb576;
+            box-sizing: border-box;
+        }
+        .main-photo, .section-img { 
+            max-width: 90%; 
+            height: auto; 
+            border: 3px solid #000099; 
+            margin: 20px 0; 
+            background-color: #fff; 
+        }
+        h1 { font-size: 2.2em; color: #000099; margin-bottom: 10px; overflow-wrap: break-word; }
+        p { font-size: 1.2em; font-weight: bold; margin-top: 10px; }
+        .comments-container { width: 100%; max-width: 800px; text-align: left; background-color: #aae5a4; box-sizing: border-box; }
+        .comment-item { padding: 10px; border-bottom: 1px solid #7cb576; margin-bottom: 10px; font-size: 0.9em; position: relative; overflow-wrap: break-word; }
+        .reply-item { margin-left: 20px; border-left: 2px solid #000099; background: rgba(0,0,153, 0.05); }
+        .reply-btn { color: #000099; cursor: pointer; text-decoration: underline; font-size: 0.8em; margin-left: 10px; }
+        .reply-to-info { background: #eee; padding: 5px; margin-bottom: 10px; display: none; font-size: 0.8em; border: 1px solid #7cb576; }
+        .comment-header { color: #000099; font-weight: bold; font-size: 0.85em; }
+        .comment-meta { color: #000; font-weight: bold; font-size: 0.75em; }
+        .comment-body { margin-top: 8px; color: #000; font-size: 1em; }
+        .add-comment-form {
+            width: 100%; max-width: 800px; margin-top: 30px; text-align: left;
+            padding: 15px; border: 1px solid #7cb576; background: rgba(255,255,255,0.1);
+            box-sizing: border-box;
+        }
+        .add-comment-form input, .add-comment-form textarea {
+            width: 100%; box-sizing: border-box; border: 1px solid #7cb576;
+            padding: 12px; font-family: Verdana; margin-bottom: 10px;
+            font-size: 16px; 
+        }
+        .add-comment-form button {
+            background-color: #eee; border: 1px solid #7cb576; padding: 10px 20px;
+            cursor: pointer; font-weight: bold; width: 100%;
+        }
+        @media (max-width: 600px) {
+            h1 { font-size: 1.8em; }
+            .header-logo { font-size: 1.2em; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header-bar">
+        <a href="index.html" class="header-logo">AMAMUS 34</a>
+        <div>
+            <a href="index.html" class="header-nav">← На главную</a>
+            <span class="header-nav" style="margin: 0 5px;">|</span>
+            <strong class="header-nav">04.01.2026</strong>
+        </div>
+    </div>
+    <div id="snow-container"></div>
+    <div class="section">
+        <img src="AMAMUS.jpg" alt="AMAMUS" class="main-photo">
+        <h2 style="color: #000; font-weight: bold; font-size: 1.8em;">Помним, любим, скорбим</h2>
+        <h2 style="color: #000; font-weight: bold; font-size: 1.8em;">04.01.2026</h2>
+    </div>
+    <section class="section">
+        <h1 style="color: #c00;">🎄 С НОВЫМ ГОДОМ!!! 🎄</h1>
+        <img src="ng.jpg" alt="Новый Год" class="section-img">
+        <p>йоу йоу.</p>
+    </section>
+    <section class="section">
+        <h1 style="color: #856404;">🍝 ДЕНЬ СПАГЕТТИ В США 🇺🇸</h1>
+        <img src="spagetti.jpg" alt="Спагетти" class="section-img">
+        <p>National Spaghetti Day!!!</p>
+    </section>
+    <section class="section">
+        <h1 style="color: #d0157a;">🌸 НАСТАСЬИН ДЕНЬ</h1>
+        <img src="babka.jpg" alt="Настасья" class="section-img">
+        <p>Славим великомученицу Анастасию Землеройку.</p>
+    </section>
+    <section class="section">
+        <h1 style="color: #006400;">ДЕНЬ НЕЗАВИСИМОСТИ МЬЯНМЫ</h1>
+        <p>Поздравляем от всего сердца!</p>
+    </section>
+    <section class="section">
+        <h1 style="color: #000099;">⠃⠗⠇ ВСЕМИРНЫЙ ДЕНЬ АЗБУКИ БРАЙЛЯ</h1>
+        <p>⠎⠕⠎⠊⠀⠎⠕⠎⠊⠀⠏⠕⠎⠕⠎⠊</p>
+    </section>
+    <div class="section">
+        <h2 style="color: #000099; font-size: 2em;">ЗАСЛУГИ (<span id="comment-count">3</span>)</h2>
+        <div class="comments-container" id="comment-list">
+            <div class="comment-item">
+                <div class="comment-header">Stupidugly83 <span style="color: #777; font-weight: normal;"> >> #34821885</span></div>
+                <div class="comment-meta">Posted on 2026-01-03 04:09:24 Score: 1488</div>
+                <div class="comment-body">Доксинг умирающей пенсионерки</div>
+            </div>
+            <div class="comment-item">
+                <div class="comment-header">Anon_Manul_Lover <span style="color: #777; font-weight: normal;"> >> #34821886</span></div>
+                <div class="comment-meta">Posted on 2026-01-03 04:10:12 Score: 228</div>
+                <div class="comment-body">Вымогательство бюджета детского сада с помощью армии голубей</div>
+            </div>
+            <div class="comment-item">
+                <div class="comment-header">Grandpa_Hater <span style="color: #777; font-weight: normal;"> >> #34821887</span></div>
+                <div class="comment-meta">Posted on 2026-01-03 04:11:05 Score: 666</div>
+                <div class="comment-body">Подрыв инвалидного кресла СВОего дедушки</div>
+            </div>
+        </div>
+        <div class="add-comment-form" id="comment-form-anchor">
+            <div id="reply-indicator" class="reply-to-info">
+                Ответ на сообщение <span id="reply-target-id"></span> 
+                <span style="color:red; cursor:pointer;" onclick="cancelReply()">[Отмена]</span>
+            </div>
+            <div style="color: #000099; font-weight: bold; margin-bottom: 5px;">Ваш ник:</div>
+            <input type="text" id="nickname-input" placeholder="HPPY_BRDY_:)))">
+            <div style="color: #000099; font-weight: bold; margin-bottom: 5px;">Текст заслуги:</div>
+            <textarea id="comment-input" placeholder="Enter your merit here..."></textarea>
+            <button id="post-btn" onclick="addComment()">Post comment</button>
+            <span id="loading-text" style="display:none; font-size:0.8em; color:#000099; margin-left:10px;">Загрузка...</span>
+        </div>
+    </div>
+    <script>
+        const SB_URL = 'https://wiqptoiikgjvjtwzpxjd.supabase.co';
+        const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndpcXB0b2lpa2dqdmp0d3pweGpkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc0NDE4MzIsImV4cCI6MjA4MzAxNzgzMn0.OeNZKRx-FZN6Mjw9-kuPYy2HEA6Xkb-Sf6xRlscTMUc';
+        const sbClient = supabase.createClient(SB_URL, SB_KEY);
+        const imgPath = window.location.origin + '/manul.jpg';
+        let currentReplyId = null;
+        const savedNick = localStorage.getItem('user_nickname');
+        if (savedNick) document.getElementById('nickname-input').value = savedNick;
+        async function loadComments() {
+            const { data, error } = await sbClient
+                .from('comments')
+                .select('*')
+                .order('created_at', { ascending: true });
+            if (data) {
+                const list = document.getElementById('comment-list');
+                while (list.children.length > 3) {
+                    list.removeChild(list.lastChild);
+                }
+                const mainComments = data.filter(c => !c.parent_id);
+                const replies = data.filter(c => c.parent_id);
+                mainComments.forEach(c => {
+                    renderNewComment(c, false);
+                    replies.filter(r => r.parent_id == c.id).forEach(r => renderNewComment(r, true));
+                });
+                document.getElementById('comment-count').innerText = 3 + data.length;
+            }
+        }
+        function renderNewComment(c, isReply) {
+            const list = document.getElementById('comment-list');
+            const div = document.createElement('div');
+            div.className = 'comment-item' + (isReply ? ' reply-item' : '');
+            const time = new Date(c.created_at).toLocaleString();
+            div.innerHTML = `
+                <div class="comment-header">${c.author_name} <span style="color: #777; font-weight: normal;"> >> #${c.random_id}</span></div>
+                <div class="comment-meta">
+                    Posted on ${time} 
+                    (<span class="reply-btn" onclick="prepareReply('${c.id}', '${c.random_id}')">Ответить</span>)
+                </div>
+                <div class="comment-body">${c.content}</div>
+            `;
+            list.appendChild(div);
+        }
+        function prepareReply(id, rid) {
+            currentReplyId = id;
+            document.getElementById('reply-indicator').style.display = 'block';
+            document.getElementById('reply-target-id').innerText = '#' + rid;
+            document.getElementById('comment-form-anchor').scrollIntoView({ behavior: 'smooth' });
+        }
+        function cancelReply() {
+            currentReplyId = null;
+            document.getElementById('reply-indicator').style.display = 'none';
+        }
+        async function addComment() {
+            const nickInput = document.getElementById('nickname-input');
+            const textInput = document.getElementById('comment-input');
+            const nick = nickInput.value.trim() || "Anonymous";
+            const text = textInput.value.trim();
+            if (!text) return;
+            document.getElementById('post-btn').disabled = true;
+            document.getElementById('loading-text').style.display = 'inline';
+            localStorage.setItem('user_nickname', nick);
+            const randomID = Math.floor(Math.random() * 99999999);
+            const { error } = await sbClient
+                .from('comments')
+                .insert([{ 
+                    author_name: nick, 
+                    content: text, 
+                    random_id: randomID.toString(),
+                    parent_id: currentReplyId
+                }]);
+            if (!error) {
+                textInput.value = "";
+                cancelReply();
+                await loadComments(); 
+            } else {
+                alert("Ошибка БД: " + error.message);
+            }
+            document.getElementById('post-btn').disabled = false;
+            document.getElementById('loading-text').style.display = 'none';
+        }
+        loadComments();
+        // Fixed manuls in background - reduced from 12 to 6 for performance
+        for (let i = 0; i < 6; i++) {
+            const m = document.createElement('img');
+            m.src = imgPath;
+            m.className = 'manul manul-bg';
+            m.style.width = (Math.random() * 40 + 30) + 'px';
+            m.style.left = Math.random() * 100 + 'vw';
+            m.style.animationDuration = (Math.random() * 5 + 4) + 's';
+            m.style.animationDelay = Math.random() * 5 + 's';
+            document.getElementById('snow-container').appendChild(m);
+        }
+        // Throttled mousemove - limit to one manul per 200ms to prevent lag
+        let lastManulTime = 0;
+        document.addEventListener('mousemove', (e) => {
+            const now = Date.now();
+            if (now - lastManulTime > 200 && Math.random() > 0.85) {
+                lastManulTime = now;
+                const m = document.createElement('img');
+                m.src = imgPath;
+                m.className = 'manul manul-cursor';
+                m.style.width = '20px';
+                m.style.left = e.pageX + 'px';
+                m.style.top = e.pageY + 'px';
+                m.style.position = 'absolute';
+                const fallTime = 1.5;
+                m.style.animationDuration = fallTime + 's';
+                document.body.appendChild(m);
+                setTimeout(() => { m.remove(); }, fallTime * 1000);
+            }
+        });
+    </script>
+</body>
+</html>

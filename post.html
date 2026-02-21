@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Post — amamus34</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/app.js"></script>
+</head>
+<body>
+  <div id="header-placeholder"></div>
+
+  <div class="layout-with-sidebar">
+    <aside class="sidebar">
+      <h3>Search</h3>
+      <div class="search-row">
+        <input type="text" id="sidebar-search" placeholder="Теги...">
+        <button type="button" id="sidebar-search-btn">Search</button>
+      </div>
+      <h3>Tags</h3>
+      <div class="tag-list" id="sidebar-tags">
+        <p>—</p>
+      </div>
+      <h3>Statistics</h3>
+      <div id="sidebar-stats" class="stat-line">
+        <p>Id: <span id="stat-id">—</span></p>
+        <p>Posted: <span id="stat-posted">—</span></p>
+        <p>by <span id="stat-author">—</span></p>
+        <p>Size: <span id="stat-size">—</span></p>
+        <p>Score: <span id="stat-score">0</span> (<a href="#" id="vote-up-link">vote up</a>)</p>
+      </div>
+      <h3>Options</h3>
+      <div class="options-list">
+        <a href="#" id="opt-edit">Edit</a>
+        <a href="" id="opt-original" target="_blank">Original image</a>
+        <a href="#" id="opt-report">Report to moderation</a>
+        <a href="#" id="opt-add-note">Add Note</a>
+        <a href="#" id="opt-fav">Add to favorites</a>
+      </div>
+      <h3>History</h3>
+      <div class="options-list">
+        <a href="#">Tags</a>
+        <a href="#">Notes</a>
+      </div>
+      <h3>Related Posts</h3>
+      <div class="options-list">
+        <a href="#">Similar</a>
+      </div>
+    </aside>
+
+    <main class="main-content post-view">
+      <div id="post-loading">Загрузка...</div>
+      <div id="post-content" style="display: none;">
+        <div class="image-block">
+          <a id="img-link" href="" target="_blank" rel="noopener">
+            <img id="post-image" src="" alt="Post">
+          </a>
+        </div>
+        <div class="nav-buttons">
+          <button type="button" id="btn-prev">&lt; previous</button>
+          <button type="button" id="btn-next">next &gt;</button>
+        </div>
+        <p style="margin-top: 20px; font-size: 0.9em;">
+          <a href="#" id="link-edit">Edit</a>
+          <span class="sep">|</span>
+          <a href="#comment-form-anchor" id="link-comment">Create an account to comment</a>
+        </p>
+      </div>
+
+      <section class="comments-section" id="comments-section" style="display: none;">
+        <h3>Comments</h3>
+        <div id="comment-list"></div>
+        <div class="add-comment-form" id="comment-form-anchor">
+          <div id="reply-indicator" class="reply-to-info" style="display: none;">
+            Ответ на <span id="reply-target-id"></span>
+            <span style="color: red; cursor: pointer;" onclick="cancelReply()">[Отмена]</span>
+          </div>
+          <label>Ваш ник:</label>
+          <input type="text" id="nickname-input" placeholder="Anonymous" maxlength="50">
+          <label>Текст комментария:</label>
+          <textarea id="comment-input" placeholder="Enter your comment..." maxlength="2000"></textarea>
+          <button type="button" id="post-comment-btn" onclick="submitComment()">Post comment</button>
+          <span id="loading-text" style="display: none;">Загрузка...</span>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    initHeader('post.html');
+
+    var params = new URLSearchParams(location.search);
+    var postId = params.get('id');
+    var currentPost = null;
+    var allPosts = [];
+    var currentReplyId = null;
+    var savedNick = localStorage.getItem('user_nickname');
+    if (savedNick && document.getElementById('nickname-input')) {
+      document.getElementById('nickname-input').value = savedNick;
+    }
+
+    // Search functionality
+    document.getElementById('sidebar-search-btn').onclick = function() {
+      var q = document.getElementById('sidebar-search').value.trim();
+      if (q) location.href = 'posts.html?tags=' + encodeURIComponent(q);
+    };
+    document.getElementById('sidebar-search').onkeydown = function(e) {
+      if (e.key === 'Enter') document.getElementById('sidebar-search-btn').click();
+    };
+
+    // Escape HTML to prevent XSS
+    function escapeHtml(text) {
+      if (text == null) return '';
+      return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    // Safe DOM creation for comments - prevents XSS
+    function createCommentElement(c, isReply) {
+      var div = document.createElement('div');
+      div.className = 'comment-item' + (isReply ? ' reply-item' : '');
+
+      var header = document.createElement('div');
+      header.className = 'comment-header';
+      header.textContent = c.author_name || 'Anonymous';
+      var span = document.createElement('span');
+      span.style.color = '#777';
+      span.style.fontWeight = 'normal';
+      span.textContent = ' >> #' + (c.random_id || c.id).substring(0, 8);
+      header.appendChild(span);
+
+      var meta = document.createElement('div');
+      meta.className = 'comment-meta';
+      var time = c.created_at ? new Date(c.created_at).toLocaleString() : '';
+      meta.textContent = 'Posted on ' + time + ' ';
+
+      // Reply button (only for non-replies to prevent deep nesting)
+      if (!isReply) {
+        var replyBtn = document.createElement('span');
+        replyBtn.className = 'reply-btn';
+        replyBtn.textContent = '(Ответить)';
+        replyBtn.style.cursor = 'pointer';
+        replyBtn.style.color = '#4a90d9';
+        replyBtn.onclick = function() {
+          prepareReply(c.id, c.random_id || c.id);
+        };
+        meta.appendChild(replyBtn);
+      }
+
+      var body = document.createElement('div');
+      body.className = 'comment-body';
+      // Server already sanitizes, but textContent ensures no XSS
+      body.textContent = c.content || '';
+
+      div.appendChild(header);
+      div.appendChild(meta);
+      div.appendChild(body);
+      return div;
+    }
+
+    function showPost(p) {
+      currentPost = p;
+      document.getElementById('post-loading').style.display = 'none';
+      document.getElementById('post-content').style.display = 'block';
+      document.getElementById('comments-section').style.display = 'block';
+
+      var img = document.getElementById('post-image');
+      var link = document.getElementById('img-link');
+      img.src = p.image_url;
+      link.href = p.image_url;
+
+      document.getElementById('stat-id').textContent = p.id.substring(0, 8);
+      document.getElementById('stat-posted').textContent = p.created_at ? new Date(p.created_at).toLocaleString() : '—';
+      document.getElementById('stat-author').textContent = p.author_username || '—';
+      document.getElementById('stat-size').textContent = (p.width && p.height) ? (p.width + 'x' + p.height) : '—';
+      document.getElementById('stat-score').textContent = p.score != null ? p.score : 0;
+      document.getElementById('opt-original').href = p.image_url;
+
+      // Safe tag rendering with DOM APIs
+      var tagsContainer = document.getElementById('sidebar-tags');
+      tagsContainer.innerHTML = '';
+      var tags = [p.character_tags, p.general_tags, p.meta_tags].filter(Boolean).join(', ');
+      if (tags) {
+        var tagList = tags.split(/[\s,]+/).filter(Boolean);
+        tagList.forEach(function(t, i) {
+          if (i > 0) tagsContainer.appendChild(document.createTextNode(' '));
+          var a = document.createElement('a');
+          a.href = 'posts.html?tags=' + encodeURIComponent(t);
+          a.textContent = t;
+          tagsContainer.appendChild(a);
+        });
+      } else {
+        tagsContainer.innerHTML = '<p>—</p>';
+      }
+
+      // Check auth status
+      checkAuth().then(function(user) {
+        var commentLink = document.getElementById('link-comment');
+        if (user) {
+          commentLink.textContent = 'Оставить комментарий';
+        } else {
+          commentLink.textContent = 'Create an account to comment';
+        }
+        commentLink.href = '#comment-form-anchor';
+      });
+
+      loadComments();
+    }
+
+    function loadComments() {
+      if (!postId) return;
+
+      // Use Supabase directly for production compatibility
+      if (window.sb) {
+        window.sb.from('post_comments').select('*').eq('post_id', postId).order('created_at', { ascending: true })
+          .then(function(result) {
+            if (result.error) throw new Error(result.error.message);
+            var comments = result.data || [];
+            var list = document.getElementById('comment-list');
+            list.innerHTML = '';
+
+            // Organize comments by parent
+            var roots = comments.filter(function(c) { return !c.parent_id; });
+            var byParent = {};
+            comments.forEach(function(c) {
+              if (c.parent_id) {
+                if (!byParent[c.parent_id]) byParent[c.parent_id] = [];
+                byParent[c.parent_id].push(c);
+              }
+            });
+
+            // Render comments
+            roots.forEach(function(c) {
+              list.appendChild(createCommentElement(c, false));
+              (byParent[c.id] || []).forEach(function(r) {
+                list.appendChild(createCommentElement(r, true));
+              });
+            });
+          })
+          .catch(function(err) {
+            document.getElementById('comment-list').textContent = 'Ошибка загрузки комментариев: ' + err.message;
+          });
+      } else if (window.IS_LOCAL && API_URL) {
+        // Fallback to API (local development only)
+        fetch(API_URL + '/api/comments?post_id=' + encodeURIComponent(postId), {
+          credentials: 'include'
+        })
+        .then(function(res) {
+          if (!res.ok) throw new Error('Failed to load comments');
+          return res.json();
+        })
+        .then(function(data) {
+          var comments = data.comments || [];
+          var list = document.getElementById('comment-list');
+          list.innerHTML = '';
+
+          var roots = comments.filter(function(c) { return !c.parent_id; });
+          var byParent = {};
+          comments.forEach(function(c) {
+            if (c.parent_id) {
+              if (!byParent[c.parent_id]) byParent[c.parent_id] = [];
+              byParent[c.parent_id].push(c);
+            }
+          });
+
+          roots.forEach(function(c) {
+            list.appendChild(createCommentElement(c, false));
+            (byParent[c.id] || []).forEach(function(r) {
+              list.appendChild(createCommentElement(r, true));
+            });
+          });
+        })
+        .catch(function(err) {
+          document.getElementById('comment-list').textContent = 'Ошибка загрузки комментариев';
+        });
+      }
+    }
+
+    function prepareReply(id, rid) {
+      currentReplyId = id;
+      document.getElementById('reply-indicator').style.display = 'block';
+      document.getElementById('reply-target-id').textContent = '#' + (rid || id).substring(0, 8);
+      document.getElementById('comment-form-anchor').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function cancelReply() {
+      currentReplyId = null;
+      document.getElementById('reply-indicator').style.display = 'none';
+    }
+
+    function submitComment() {
+      var nick = (document.getElementById('nickname-input').value || '').trim() || 'Anonymous';
+      var text = (document.getElementById('comment-input').value || '').trim();
+
+      if (!text) {
+        alert('Введите текст комментария');
+        return;
+      }
+
+      if (!postId) return;
+
+      // Validate input lengths
+      if (nick.length > 50) {
+        alert('Ник слишком длинный (макс. 50 символов)');
+        return;
+      }
+      if (text.length > 2000) {
+        alert('Комментарий слишком длинный (макс. 2000 символов)');
+        return;
+      }
+
+      localStorage.setItem('user_nickname', nick);
+
+      var btn = document.getElementById('post-comment-btn');
+      var loading = document.getElementById('loading-text');
+      btn.disabled = true;
+      loading.style.display = 'inline';
+
+      // Use Supabase directly for production compatibility
+      if (window.sb) {
+        window.sb.from('post_comments').insert([{
+          post_id: postId,
+          author_name: nick,
+          content: text,
+          parent_id: currentReplyId || null,
+          random_id: Math.floor(Math.random() * 99999999).toString()
+        }])
+        .then(function(result) {
+          if (result.error) throw new Error(result.error.message);
+          document.getElementById('comment-input').value = '';
+          cancelReply();
+          loadComments();
+        })
+        .catch(function(err) {
+          alert('Ошибка: ' + (err.message || 'Не удалось отправить комментарий'));
+        })
+        .finally(function() {
+          btn.disabled = false;
+          loading.style.display = 'none';
+        });
+      } else {
+        // Fallback to API
+        fetch(API_URL + '/api/comments', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            post_id: postId,
+            author_name: nick,
+            content: text,
+            parent_id: currentReplyId || null
+          })
+        })
+        .then(function(res) {
+          return res.json().then(function(data) {
+            if (!res.ok) throw new Error(data.error || 'Ошибка сервера');
+            return data;
+          });
+        })
+        .then(function(data) {
+          document.getElementById('comment-input').value = '';
+          cancelReply();
+          loadComments();
+        })
+        .catch(function(err) {
+          alert('Ошибка: ' + (err.message || 'Не удалось отправить комментарий'));
+        })
+        .finally(function() {
+          btn.disabled = false;
+          loading.style.display = 'none';
+        });
+      }
+    }
+
+    // Load post data - use Supabase directly for production compatibility
+    if (!postId) {
+      document.getElementById('post-loading').textContent = 'Пост не найден.';
+    } else if (window.sb) {
+      // Use Supabase directly (works in production)
+      window.sb.from('posts').select('*').eq('id', postId).maybeSingle()
+        .then(function(result) {
+          if (result.error) throw new Error(result.error.message);
+          if (result.data) showPost(result.data);
+          else throw new Error('Пост не найден');
+        })
+        .catch(function(err) {
+          document.getElementById('post-loading').textContent = err.message || 'Ошибка загрузки.';
+        });
+    } else if (window.IS_LOCAL && API_URL) {
+      // Fallback to API (for local development only)
+      fetch(API_URL + '/api/posts/' + encodeURIComponent(postId))
+        .then(function(res) {
+          if (!res.ok) {
+            if (res.status === 404) throw new Error('Пост не найден');
+            throw new Error('Ошибка загрузки');
+          }
+          return res.json();
+        })
+        .then(function(data) {
+          if (data.post) showPost(data.post);
+          else throw new Error('Пост не найден');
+        })
+        .catch(function(err) {
+          document.getElementById('post-loading').textContent = err.message || 'Ошибка загрузки.';
+        });
+    } else {
+      // Neither Supabase nor API available
+      document.getElementById('post-loading').textContent = 'Ошибка загрузки. Supabase недоступен.';
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign Up — amamus34</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="js/app.js"></script>
+</head>
+<body>
+  <div id="header-placeholder"></div>
+
+  <div id="agreement-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-content">
+      <h2>Пользовательское соглашение</h2>
+      <p><strong>Регистрируясь на сайте amamus34, вы соглашаетесь с тем, что:</strong></p>
+      <ul style="line-height: 1.6;">
+        <li>Вы несете полную ответственность за весь контент, который публикуете на сайте.</li>
+        <li>Вы обязуетесь не публиковать контент, нарушающий законодательство РФ и других стран.</li>
+        <li>Вы обязуетесь не публиковать материалы, защищенные авторским правом, без разрешения правообладателя.</li>
+        <li>Администрация сайта имеет право удалить любой контент без объяснения причин.</li>
+        <li>Администрация не несет ответственности за контент, размещенный пользователями.</li>
+      </ul>
+      <p>Продолжая регистрацию, вы подтверждаете, что прочитали и согласны с данным соглашением.</p>
+      <div class="modal-buttons">
+        <button type="button" class="btn-decline" onclick="declineAgreement()">Отклонить</button>
+        <button type="button" class="btn-accept" onclick="acceptAgreement()">Принять</button>
+      </div>
+    </div>
+  </div>
+
+  <main class="form-page">
+    <h1>Sign Up</h1>
+    <p class="hint">Регистрация: только ник и пароль, почта не нужна.</p>
+    <form id="register-form">
+      <label>Ник</label>
+      <input type="text" id="username" required minlength="3" maxlength="30" autocomplete="username" placeholder="Минимум 3 символа">
+      <label>Пароль</label>
+      <input type="password" id="password" required minlength="8" autocomplete="new-password" placeholder="Минимум 8 символов, буквы и цифры">
+      <button type="submit" id="submit-btn">Sign Up</button>
+      <p id="register-error" class="error" style="display: none;"></p>
+    </form>
+    <p><a href="login.html">Login</a> — войти</p>
+  </main>
+
+  <script>
+    initHeader('');
+    var agreementAccepted = false;
+    var isSubmitting = false;
+
+    function showAgreement() {
+      document.getElementById('agreement-modal').style.display = 'flex';
+    }
+
+    function acceptAgreement() {
+      agreementAccepted = true;
+      document.getElementById('agreement-modal').style.display = 'none';
+      proceedRegistration();
+    }
+
+    function declineAgreement() {
+      document.getElementById('agreement-modal').style.display = 'none';
+      agreementAccepted = false;
+      var errEl = document.getElementById('register-error');
+      errEl.textContent = 'Необходимо принять пользовательское соглашение для регистрации.';
+      errEl.style.display = 'block';
+    }
+
+    var pendingUsername = '';
+    var pendingPassword = '';
+
+    async function proceedRegistration() {
+      if (isSubmitting) return;
+      isSubmitting = true;
+
+      var errEl = document.getElementById('register-error');
+      var btn = document.getElementById('submit-btn');
+      errEl.style.display = 'none';
+      btn.disabled = true;
+      btn.textContent = 'Регистрация...';
+
+      try {
+        const result = await registerUser(pendingUsername, pendingPassword);
+        if (result.ok) {
+          location.href = 'index.html';
+        } else {
+          errEl.textContent = result.error || 'Ошибка регистрации';
+          errEl.style.display = 'block';
+          isSubmitting = false;
+          btn.disabled = false;
+          btn.textContent = 'Sign Up';
+        }
+      } catch (err) {
+        errEl.textContent = 'Ошибка соединения с сервером';
+        errEl.style.display = 'block';
+        isSubmitting = false;
+        btn.disabled = false;
+        btn.textContent = 'Sign Up';
+      }
+    }
+
+    document.getElementById('register-form').onsubmit = function(e) {
+      e.preventDefault();
+      if (isSubmitting) return;
+
+      var errEl = document.getElementById('register-error');
+      errEl.style.display = 'none';
+
+      pendingUsername = document.getElementById('username').value.trim();
+      pendingPassword = document.getElementById('password').value;
+
+      // Client-side validation
+      if (pendingUsername.length < 3) {
+        errEl.textContent = 'Ник должен быть минимум 3 символа';
+        errEl.style.display = 'block';
+        return;
+      }
+      if (pendingPassword.length < 8) {
+        errEl.textContent = 'Пароль должен быть минимум 8 символов';
+        errEl.style.display = 'block';
+        return;
+      }
+      if (!/[a-zA-Z]/.test(pendingPassword) || !/[0-9]/.test(pendingPassword)) {
+        errEl.textContent = 'Пароль должен содержать буквы и цифры';
+        errEl.style.display = 'block';
+        return;
+      }
+
+      if (!agreementAccepted) {
+        showAgreement();
+      } else {
+        proceedRegistration();
+      }
+    };
+  </script>
+</body>
+</html>

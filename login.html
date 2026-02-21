@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login — amamus34</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="js/app.js"></script>
+</head>
+<body>
+  <div id="header-placeholder"></div>
+
+  <div id="agreement-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-content">
+      <h2>Пользовательское соглашение</h2>
+      <p><strong>Входя на сайт amamus34, вы соглашаетесь с тем, что:</strong></p>
+      <ul style="line-height: 1.6;">
+        <li>Вы несете полную ответственность за весь контент, который публикуете на сайте.</li>
+        <li>Вы обязуетесь не публиковать контент, нарушающий законодательство РФ и других стран.</li>
+        <li>Вы обязуетесь не публиковать материалы, защищенные авторским правом, без разрешения правообладателя.</li>
+        <li>Администрация сайта имеет право удалить любой контент без объяснения причин.</li>
+        <li>Администрация не несет ответственности за контент, размещенный пользователями.</li>
+      </ul>
+      <p>Продолжая вход, вы подтверждаете, что прочитали и согласны с данным соглашением.</p>
+      <div class="modal-buttons">
+        <button type="button" class="btn-decline" onclick="declineAgreement()">Отклонить</button>
+        <button type="button" class="btn-accept" onclick="acceptAgreement()">Принять</button>
+      </div>
+    </div>
+  </div>
+
+  <main class="form-page">
+    <h1>Login</h1>
+    <p class="hint">Если у вас уже есть аккаунт — войдите. Логин и пароль, без почты.</p>
+    <form id="login-form">
+      <label>Ник</label>
+      <input type="text" id="username" required autocomplete="username" placeholder="Ваш ник">
+      <label>Пароль</label>
+      <input type="password" id="password" required autocomplete="current-password" placeholder="Ваш пароль">
+      <button type="submit" id="submit-btn">Login</button>
+      <p id="login-error" class="error" style="display: none;"></p>
+    </form>
+    <p><a href="register.html">Sign Up</a> — зарегистрироваться</p>
+  </main>
+
+  <script>
+    initHeader('');
+
+    // Check if user is already logged in
+    checkAuth().then(function(user) {
+      if (user) {
+        // Already logged in, redirect
+        var referrer = document.referrer;
+        if (referrer && referrer.indexOf('amamus34') >= 0 && !referrer.includes('login.html')) {
+          location.href = referrer;
+        } else {
+          location.href = 'index.html';
+        }
+      }
+    });
+
+    var agreementAccepted = localStorage.getItem('agreement_accepted') === 'true';
+    var isSubmitting = false;
+
+    function showAgreement() {
+      document.getElementById('agreement-modal').style.display = 'flex';
+    }
+
+    function acceptAgreement() {
+      agreementAccepted = true;
+      localStorage.setItem('agreement_accepted', 'true');
+      document.getElementById('agreement-modal').style.display = 'none';
+      proceedLogin();
+    }
+
+    function declineAgreement() {
+      document.getElementById('agreement-modal').style.display = 'none';
+      agreementAccepted = false;
+      var errEl = document.getElementById('login-error');
+      errEl.textContent = 'Необходимо принять пользовательское соглашение для входа.';
+      errEl.style.display = 'block';
+    }
+
+    var pendingUsername = '';
+    var pendingPassword = '';
+
+    async function proceedLogin() {
+      if (isSubmitting) return;
+      isSubmitting = true;
+
+      var errEl = document.getElementById('login-error');
+      var btn = document.getElementById('submit-btn');
+      errEl.style.display = 'none';
+      btn.disabled = true;
+      btn.textContent = 'Вход...';
+
+      try {
+        const result = await loginUser(pendingUsername, pendingPassword);
+        if (result.ok) {
+          var referrer = document.referrer;
+          if (referrer && referrer.indexOf('amamus34') >= 0 && !referrer.includes('login.html')) {
+            location.href = referrer;
+          } else {
+            location.href = 'index.html';
+          }
+        } else {
+          errEl.textContent = result.error || 'Ошибка входа';
+          errEl.style.display = 'block';
+          isSubmitting = false;
+          btn.disabled = false;
+          btn.textContent = 'Login';
+        }
+      } catch (err) {
+        errEl.textContent = 'Ошибка соединения с сервером';
+        errEl.style.display = 'block';
+        isSubmitting = false;
+        btn.disabled = false;
+        btn.textContent = 'Login';
+      }
+    }
+
+    document.getElementById('login-form').onsubmit = function(e) {
+      e.preventDefault();
+      if (isSubmitting) return;
+
+      var errEl = document.getElementById('login-error');
+      errEl.style.display = 'none';
+
+      pendingUsername = document.getElementById('username').value.trim();
+      pendingPassword = document.getElementById('password').value;
+
+      if (!pendingUsername || !pendingPassword) {
+        errEl.textContent = 'Введите ник и пароль';
+        errEl.style.display = 'block';
+        return;
+      }
+
+      if (!agreementAccepted) {
+        showAgreement();
+      } else {
+        proceedLogin();
+      }
+    };
+  </script>
+</body>
+</html>

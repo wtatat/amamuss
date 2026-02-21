@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Upload — amamus34</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/app.js"></script>
+</head>
+<body>
+  <div id="header-placeholder"></div>
+
+  <main class="form-page">
+    <h1>Upload</h1>
+    <div id="login-required" class="login-notice" style="display: none;">
+      Чтобы публиковать, нужно <a href="login.html">войти</a> или <a href="register.html">зарегистрироваться</a> (ник и пароль, без почты).
+    </div>
+    <form id="upload-form" action="javascript:void(0);" onsubmit="return false;">
+      <label>Изображение *</label>
+      <input type="file" id="file-input" accept="image/png,image/jpeg,image/jpg,image/gif,image/webp" required>
+      <p class="hint">Разрешены: PNG, JPEG, GIF, WebP. Максимум 10MB.</p>
+      <label>Character (теги через пробел или запятую)</label>
+      <input type="text" id="character-tags" placeholder="character1 character2" maxlength="500">
+      <label>General (теги через пробел или запятую)</label>
+      <input type="text" id="general-tags" placeholder="tag1 tag2 tag3" maxlength="500">
+      <label>Meta (теги через пробел или запятую)</label>
+      <input type="text" id="meta-tags" placeholder="meta1 meta2" maxlength="500">
+      <button type="button" id="upload-btn">Upload</button>
+      <p id="upload-status" class="error" style="display: none;"></p>
+    </form>
+  </main>
+
+  <script>
+    initHeader('upload.html');
+
+    function setStatus(msg, isError) {
+      var s = document.getElementById('upload-status');
+      if (!s) return;
+      s.textContent = typeof msg === 'string' ? msg : '';
+      s.style.display = 'block';
+      s.className = isError ? 'error' : 'success';
+    }
+
+    // Check auth on load
+    var currentUser = null;
+    checkAuth().then(function(user) {
+      currentUser = user;
+      if (!user) {
+        document.getElementById('login-required').style.display = 'block';
+        var btn = document.getElementById('upload-btn');
+        if (btn) btn.disabled = true;
+      }
+    });
+
+    function validateFile(file) {
+      // Check file type
+      var allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'];
+      if (!allowedTypes.includes(file.type)) {
+        return 'Разрешены только изображения: PNG, JPEG, GIF, WebP';
+      }
+
+      // Check file size (10MB)
+      var maxSize = 10 * 1024 * 1024;
+      if (file.size > maxSize) {
+        return 'Файл слишком большой. Максимум 10MB';
+      }
+
+      return null;
+    }
+
+    async function doUpload() {
+      try {
+        var user = await checkAuth();
+        if (!user) {
+          setStatus('Войдите в аккаунт, чтобы загружать посты.', true);
+          return;
+        }
+
+        var fileInput = document.getElementById('file-input');
+        var file = fileInput && fileInput.files[0];
+        if (!file) {
+          setStatus('Выберите изображение.', true);
+          return;
+        }
+
+        // Validate file
+        var validationError = validateFile(file);
+        if (validationError) {
+          setStatus(validationError, true);
+          return;
+        }
+
+        var statusEl = document.getElementById('upload-status');
+        var uploadBtn = document.getElementById('upload-btn');
+        statusEl.style.display = 'block';
+        statusEl.textContent = 'Загрузка...';
+        statusEl.className = '';
+        if (uploadBtn) uploadBtn.disabled = true;
+
+        // Read file as base64
+        var reader = new FileReader();
+        reader.onload = async function() {
+          var imageData = reader.result;
+
+          var charTags = (document.getElementById('character-tags').value || '').trim();
+          var genTags = (document.getElementById('general-tags').value || '').trim();
+          var metaTags = (document.getElementById('meta-tags').value || '').trim();
+
+          try {
+            var res = await fetch(API_URL + '/api/posts', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
+              body: JSON.stringify({
+                image_data: imageData,
+                character_tags: charTags,
+                general_tags: genTags,
+                meta_tags: metaTags
+              })
+            });
+
+            var data = await res.json();
+
+            if (!res.ok) {
+              throw new Error(data.error || 'Ошибка загрузки');
+            }
+
+            // Success
+            var s = document.getElementById('upload-status');
+            s.innerHTML = 'Готово! <a href="post.html?id=' + data.postId + '">Открыть пост</a>';
+            s.style.display = 'block';
+            s.className = 'success';
+
+            // Clear form
+            document.getElementById('file-input').value = '';
+            document.getElementById('character-tags').value = '';
+            document.getElementById('general-tags').value = '';
+            document.getElementById('meta-tags').value = '';
+
+          } catch (err) {
+            setStatus('Ошибка: ' + (err.message || 'Не удалось загрузить'), true);
+          } finally {
+            if (uploadBtn) uploadBtn.disabled = false;
+          }
+        };
+
+        reader.onerror = function() {
+          setStatus('Ошибка чтения файла', true);
+          if (uploadBtn) uploadBtn.disabled = false;
+        };
+
+        reader.readAsDataURL(file);
+
+      } catch (err) {
+        var uploadBtn = document.getElementById('upload-btn');
+        if (uploadBtn) uploadBtn.disabled = false;
+        setStatus('Ошибка: ' + (err && err.message ? err.message : String(err)), true);
+      }
+    }
+
+    document.getElementById('upload-btn').addEventListener('click', doUpload);
+    document.getElementById('upload-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      doUpload();
+    });
+  </script>
+</body>
+</html>

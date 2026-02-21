@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Random — amamus34</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/app.js"></script>
+</head>
+<body>
+  <div id="header-placeholder"></div>
+
+  <main class="form-page">
+    <h1>Random</h1>
+    <p id="random-status">Загрузка случайного поста...</p>
+  </main>
+
+  <script>
+    initHeader('random.html');
+    if (window.sb) {
+      window.sb.from('posts').select('id').then(function(res) {
+        var list = res.data || [];
+        if (list.length === 0) {
+          document.getElementById('random-status').innerHTML = 'Постов пока нет. <a href="upload.html">Upload</a>';
+          return;
+        }
+        var random = list[Math.floor(Math.random() * list.length)];
+        location.replace('post.html?id=' + random.id);
+      }).catch(function() {
+        document.getElementById('random-status').innerHTML = 'Ошибка. <a href="posts.html">К постам</a>';
+      });
+    } else {
+      document.getElementById('random-status').innerHTML = 'Supabase не подключён. <a href="posts.html">К постам</a>';
+    }
+  </script>
+</body>
+</html>

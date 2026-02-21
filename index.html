@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>amamus34</title>
+  <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/app.js"></script>
+  <script src="js/cookie-consent.js"></script>
+</head>
+<body>
+  <div id="header-placeholder"></div>
+
+  <main class="home-hero">
+    <h1 style="font-size: 1.8em; color: #000099; margin-bottom: 10px;">amamus34</h1>
+    <img src="AMAMUS.jpg" alt="amamus34" class="main-image" id="hero-image" style="max-width: 300px; border: 2px solid #000099;">
+    <p class="slogan">Если это существует — оно есть у нас. Если нет — начни загружать.</p>
+
+    <nav class="nav-links" style="justify-content: center; margin: 15px 0;">
+      <a href="posts.html">Posts</a><span class="sep">|</span>
+      <a href="comments.html">Comments</a><span class="sep">|</span>
+      <a href="video.html">Video</a><span class="sep">|</span>
+      <a href="upload.html">Upload</a><span class="sep">|</span>
+      <a href="upload-video.html">Upload Video</a><span class="sep">|</span>
+      <a href="random.html">Random</a>
+    </nav>
+
+    <div class="home-search">
+      <input type="text" id="home-search-input" placeholder="Поиск по тегам...">
+      <button type="button" id="home-search-btn" onclick="submitHomeSearch()">Search</button>
+    </div>
+
+    <p class="stats-line" id="stats-line">Загрузка...</p>
+  </main>
+
+  <footer class="footer-links">
+    <a href="terms.html">Terms of Service</a>
+    <a href="contact.html">Contact Us</a>
+    <a href="dmca.html">DMCA</a>
+  </footer>
+
+    <script>
+    initHeader('');
+    function submitHomeSearch() {
+      var q = document.getElementById('home-search-input').value.trim();
+      if (q) window.location.href = 'posts.html?tags=' + encodeURIComponent(q);
+    }
+    document.getElementById('home-search-input').onkeydown = function(e) { if (e.key === 'Enter') submitHomeSearch(); };
+    if (window.sb) {
+      window.sb.from('posts').select('id', { count: 'exact', head: true }).then(function(r) {
+        var count = (r && r.count != null) ? r.count : 0;
+        document.getElementById('stats-line').textContent = 'Постов: ' + count + ' — amamus34';
+      }).catch(function() {
+        document.getElementById('stats-line').textContent = 'Постов: 0 — amamus34';
+      });
+            } else {
+      document.getElementById('stats-line').textContent = 'Постов: 0 — amamus34';
+    }
+    </script>
+</body>
+</html>
