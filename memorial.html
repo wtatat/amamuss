@@ -148,7 +148,7 @@
         const SB_URL = 'https://wiqptoiikgjvjtwzpxjd.supabase.co';
         const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndpcXB0b2lpa2dqdmp0d3pweGpkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc0NDE4MzIsImV4cCI6MjA4MzAxNzgzMn0.OeNZKRx-FZN6Mjw9-kuPYy2HEA6Xkb-Sf6xRlscTMUc';
         const sbClient = supabase.createClient(SB_URL, SB_KEY);
-        const imgPath = window.location.origin + '/manul.jpg';
+        const imgPath = 'manul.jpg';
         let currentReplyId = null;
         const savedNick = localStorage.getItem('user_nickname');
         if (savedNick) document.getElementById('nickname-input').value = savedNick;
