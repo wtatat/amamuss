@@ -34,7 +34,7 @@ async function registerUser(username, password) {
   if (!passwordClean || passwordClean.length < 4) return { ok: false, error: 'Пароль от 4 символов' };
 
   // Only use server API in local development
-  if (API_URL) {
+  if (IS_LOCAL) {
     try {
       const response = await fetch(`${API_URL}/api/register`, {
         method: 'POST',
@@ -49,6 +49,15 @@ async function registerUser(username, password) {
     } catch (err) {
       return { ok: false, error: 'Сервер недоступен. Запустите сервер локально (node server.js)' };
     }
+  } else {
+    try {
+      const { data, error } = await sb.from('users').insert([{ username: usernameClean, password: passwordClean }]);
+      if (error) throw error;
+      setCurrentUser(data[0]);
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: 'Ошибка регистрации: ' + err.message };
+    }
   }
 
 }
@@ -59,7 +68,7 @@ async function loginUser(username, password) {
   if (!usernameClean || !passwordClean || passwordClean.length < 4) return { ok: false, error: 'Введите корректные данные' };
 
   // Only use server API in local development
-  if (API_URL) {
+  if (IS_LOCAL) {
     try {
       const response = await fetch(`${API_URL}/api/login`, {
         method: 'POST',
