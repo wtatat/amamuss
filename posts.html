@@ -9,15 +9,7 @@
   <script src="js/app.js"></script>
 </head>
 <body>
-  <div id="header-placeholder">
-    <header class="site-header">
-      <a href="index.html" class="site-logo">amamus34</a>
-      <nav class="nav-links">
-        <a href="login.html">Login</a><span class="sep">|</span><a href="register.html">Sign Up</a><span class="sep">|</span>
-        <strong>Posts</strong><span class="sep">|</span><a href="comments.html">Comments</a><span class="sep">|</span><a href="video.html">Video</a><span class="sep">|</span><a href="upload.html">Upload</a><span class="sep">|</span><a href="upload-video.html">Upload Video</a><span class="sep">|</span><a href="random.html">Random</a><span class="sep">|</span><a href="memorial.html">04.01.2026</a>
-      </nav>
-    </header>
-  </div>
+  <div id="header-placeholder"></div>
 
   <div class="layout-with-sidebar">
     <aside class="sidebar">
@@ -36,6 +28,7 @@
     </aside>
 
     <main class="main-content">
+      <div id="posts-filter" class="stats-line" style="display:none;"></div>
       <div class="posts-grid" id="posts-grid">
         <p>Загрузка постов...</p>
       </div>
@@ -45,27 +38,31 @@
 
   <script>
     initHeader('posts.html');
+
     var PER_PAGE = 24;
     var params = new URLSearchParams(location.search);
     var page = Math.max(1, parseInt(params.get('page') || '1', 10));
     var tagsQuery = (params.get('tags') || '').trim();
+    var artistQuery = (params.get('artist') || '').trim().toLowerCase();
 
-    document.getElementById('sidebar-search').value = tagsQuery;
-    document.getElementById('sidebar-search').onkeydown = function(e) { if (e.key === 'Enter') doSearch(); };
+    document.getElementById('sidebar-search').value = tagsQuery || artistQuery;
+    document.getElementById('sidebar-search').onkeydown = function(e) {
+      if (e.key === 'Enter') doSearch();
+    };
     document.getElementById('sidebar-search-btn').onclick = doSearch;
-    function doSearch() {
-      var q = document.getElementById('sidebar-search').value.trim();
-      location.href = 'posts.html' + (q ? '?tags=' + encodeURIComponent(q) : '');
+
+    if (artistQuery) {
+      var filterEl = document.getElementById('posts-filter');
+      filterEl.style.display = 'block';
+      filterEl.textContent = 'Artist: ' + artistQuery;
     }
 
-    function buildTagQuery() {
-      if (!tagsQuery) return null;
-      var parts = tagsQuery.split(/\s+/).filter(Boolean);
-      if (parts.length === 0) return null;
-      var or = parts.map(function(t) {
-        return 'general_tags.ilike.%' + t + '%,character_tags.ilike.%' + t + '%,meta_tags.ilike.%' + t + '%';
-      });
-      return or;
+    function doSearch() {
+      var q = document.getElementById('sidebar-search').value.trim();
+      var nextParams = new URLSearchParams();
+      if (q) nextParams.set('tags', q);
+      if (artistQuery) nextParams.set('artist', artistQuery);
+      location.href = 'posts.html' + (nextParams.toString() ? ('?' + nextParams.toString()) : '');
     }
 
     function loadPosts() {
@@ -73,7 +70,14 @@
       var from = (page - 1) * PER_PAGE;
       var to = from + PER_PAGE - 1;
 
-      var q = window.sb.from('posts').select('id, image_url, character_tags, general_tags, created_at', { count: 'exact' }).order('created_at', { ascending: false });
+      var q = window.sb
+        .from('posts')
+        .select('id, image_url, character_tags, general_tags, created_at, author_username', { count: 'exact' })
+        .order('created_at', { ascending: false });
+
+      if (artistQuery) {
+        q = q.eq('author_username', artistQuery);
+      }
 
       if (tagsQuery) {
         var terms = tagsQuery.split(/\s+/).filter(Boolean);
@@ -81,11 +85,13 @@
           q = q.or('character_tags.ilike.%' + term + '%,general_tags.ilike.%' + term + '%,meta_tags.ilike.%' + term + '%');
         });
       }
+
       q = q.range(from, to);
 
       q.then(function(res) {
         var total = res.count != null ? res.count : (res.data && res.data.length);
         grid.innerHTML = '';
+
         if (!res.data || res.data.length === 0) {
           grid.innerHTML = '<p>Постов пока нет.</p>';
         } else {
@@ -93,11 +99,15 @@
             var a = document.createElement('a');
             a.href = 'post.html?id=' + p.id;
             a.className = 'post-thumb';
+
             var img = document.createElement('img');
             img.src = p.image_url;
             img.alt = (p.character_tags || '') + ' ' + (p.general_tags || '');
             img.loading = 'lazy';
-            img.onerror = function() { this.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160"><rect fill="#ddd" width="160" height="160"/><text x="80" y="80" text-anchor="middle" fill="#666" font-size="14">?</text></svg>'; };
+            img.onerror = function() {
+              this.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160"><rect fill="#ddd" width="160" height="160"/><text x="80" y="80" text-anchor="middle" fill="#666" font-size="14">?</text></svg>';
+            };
+
             a.appendChild(img);
             grid.appendChild(a);
           });
@@ -106,31 +116,43 @@
         var totalPages = Math.max(1, Math.ceil(total / PER_PAGE));
         var pag = document.getElementById('pagination');
         pag.innerHTML = '';
-        var baseUrl = tagsQuery ? 'posts.html?tags=' + encodeURIComponent(tagsQuery) + '&' : 'posts.html?';
+
+        var baseParams = new URLSearchParams();
+        if (tagsQuery) baseParams.set('tags', tagsQuery);
+        if (artistQuery) baseParams.set('artist', artistQuery);
+        var baseUrl = 'posts.html?' + baseParams.toString() + (baseParams.toString() ? '&' : '');
+
         for (var i = 1; i <= Math.min(9, totalPages); i++) {
           var span = document.createElement(page === i ? 'span' : 'a');
           span.textContent = i;
-          if (page === i) span.className = 'current';
-          else span.href = baseUrl + 'page=' + i;
+          if (page === i) {
+            span.className = 'current';
+          } else {
+            span.href = baseUrl + 'page=' + i;
+          }
           pag.appendChild(span);
         }
+
         if (totalPages > 1) {
           var next = document.createElement('a');
-          next.href = page < totalPages ? baseUrl + 'page=' + (page + 1) : '#';
+          next.href = page < totalPages ? (baseUrl + 'page=' + (page + 1)) : '#';
           next.textContent = '>>';
           pag.appendChild(next);
+
           var last = document.createElement('a');
-          last.href = page < totalPages ? baseUrl + 'page=' + totalPages : '#';
+          last.href = page < totalPages ? (baseUrl + 'page=' + totalPages) : '#';
           last.textContent = '>>|';
           pag.appendChild(last);
         }
+
         var goDiv = document.createElement('span');
         goDiv.className = 'go-row';
         goDiv.innerHTML = '<input type="number" min="1" max="' + totalPages + '" value="' + page + '" id="go-page-num"><button type="button" id="go-btn">Go</button>';
         pag.appendChild(goDiv);
+
         document.getElementById('go-btn').onclick = function() {
           var num = parseInt(document.getElementById('go-page-num').value, 10);
-          if (num >= 1 && num <= totalPages) location.href = baseUrl + num;
+          if (num >= 1 && num <= totalPages) location.href = baseUrl + 'page=' + num;
         };
       }).catch(function() {
         grid.innerHTML = '<p>Ошибка загрузки.</p>';
@@ -152,15 +174,20 @@
             });
           });
         }
+
         var list = document.getElementById('tag-list');
         list.innerHTML = '';
-        var arr = Object.keys(seen).sort(function(a, b) { return seen[b].count - seen[a].count; }).slice(0, 50);
+        var arr = Object.keys(seen)
+          .sort(function(a, b) { return seen[b].count - seen[a].count; })
+          .slice(0, 50);
+
         arr.forEach(function(k) {
           var a = document.createElement('a');
           a.href = 'posts.html?tags=' + encodeURIComponent(seen[k].name);
           a.textContent = seen[k].name + ' (' + seen[k].count + ')';
           list.appendChild(a);
         });
+
         if (arr.length === 0) list.innerHTML = '<p>Пока нет тегов.</p>';
       });
     }
