@@ -150,10 +150,47 @@ const postLimiter = rateLimit({
   legacyHeaders: false
 });
 
+const deletionRequestLimiter = rateLimit({
+  windowMs: 30 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
 function validateUsername(value) {
   const username = (value || '').toString().trim().toLowerCase();
   if (!/^[a-z0-9_]{3,30}$/.test(username)) return null;
   return username;
+}
+
+function getClientIp(req) {
+  const ip = req.headers['x-forwarded-for'] || req.ip || '';
+  return String(ip).split(',')[0].trim();
+}
+
+async function notifyAdmin(messageText) {
+  const webhook = (process.env.ADMIN_NOTIFY_WEBHOOK_URL || '').trim();
+  const botToken = (process.env.ADMIN_TELEGRAM_BOT_TOKEN || '').trim();
+  const chatId = (process.env.ADMIN_TELEGRAM_CHAT_ID || '').trim();
+
+  if (webhook) {
+    await fetch(webhook, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: messageText })
+    });
+  }
+
+  if (botToken && chatId) {
+    await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: messageText
+      })
+    });
+  }
 }
 
 // --- ENDPOINTS ---
@@ -331,6 +368,55 @@ app.post('/api/posts', requireAuth, postLimiter, async (req, res) => {
     if (error) return res.status(500).json({ error: error.message });
     return res.status(201).json({ postId: post.id });
   } catch (error) {
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.post('/api/deletion-requests', deletionRequestLimiter, async (req, res) => {
+  try {
+    const { post_id, reason } = req.body || {};
+    const postId = (post_id || '').toString().trim();
+    const reasonText = (reason || '').toString().trim();
+
+    if (!postId) return res.status(400).json({ error: 'post_id is required' });
+    if (reasonText.length < 10) return res.status(400).json({ error: 'Reason must be at least 10 chars' });
+    if (reasonText.length > 2000) return res.status(400).json({ error: 'Reason is too long' });
+
+    const sessionUser = getSessionUser(req);
+    const requesterUsername = sessionUser ? sessionUser.username : null;
+    const requesterUserId = sessionUser ? sessionUser.id : null;
+    const requesterIp = getClientIp(req);
+    const userAgent = (req.headers['user-agent'] || '').toString().slice(0, 500);
+
+    const { error } = await supabase
+      .from('deletion_requests')
+      .insert([{
+        post_id: postId,
+        reason: reasonText,
+        requester_username: requesterUsername,
+        requester_user_id: requesterUserId,
+        requester_ip: requesterIp,
+        user_agent: userAgent
+      }]);
+
+    if (error) return res.status(500).json({ error: error.message });
+
+    const msg = [
+      'New deletion request',
+      `Post ID: ${postId}`,
+      `User: ${requesterUsername || 'anonymous'}`,
+      `IP: ${requesterIp || 'unknown'}`,
+      `Reason: ${reasonText}`
+    ].join('\n');
+
+    try {
+      await notifyAdmin(msg);
+    } catch (notifyErr) {
+      console.warn('Admin notification failed:', notifyErr.message);
+    }
+
+    return res.status(201).json({ message: 'Request sent to admin' });
+  } catch (err) {
     return res.status(500).json({ error: 'Internal server error' });
   }
 });
