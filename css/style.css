@@ -384,3 +384,4 @@ a:hover { color: #0000cc; }
   .sidebar { width: 100%; }
   .posts-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
 }
+ 
