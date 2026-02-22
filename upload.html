@@ -114,13 +114,21 @@
               credentials: 'include',
               body: JSON.stringify({
                 image_data: imageData,
+                author_username: user.username,
                 character_tags: charTags,
                 general_tags: genTags,
                 meta_tags: metaTags
               })
             });
 
-            var data = await res.json();
+            var data = null;
+            var contentType = (res.headers.get('content-type') || '').toLowerCase();
+            if (contentType.includes('application/json')) {
+              data = await res.json();
+            } else {
+              var rawText = await res.text();
+              data = { error: rawText || 'Некорректный ответ сервера' };
+            }
 
             if (!res.ok) {
               throw new Error(data.error || 'Ошибка загрузки');
