@@ -29,7 +29,8 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
-app.use(express.json());
+// Upload endpoint accepts base64 images, so JSON body must allow larger payloads.
+app.use(express.json({ limit: '20mb' }));
 
 // Supabase client
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -158,6 +159,44 @@ app.get('/api/posts/:id', async (req, res) => {
     res.json({ post });
   } catch (error) {
     res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Create post
+app.post('/api/posts', async (req, res) => {
+  try {
+    const { image_data, character_tags, general_tags, meta_tags, author_username } = req.body || {};
+
+    if (!image_data || typeof image_data !== 'string') {
+      return res.status(400).json({ error: 'image_data is required' });
+    }
+
+    // Only Data URL images are expected from upload.html
+    if (!image_data.startsWith('data:image/')) {
+      return res.status(400).json({ error: 'image_data must be a valid image Data URL' });
+    }
+
+    const username = (author_username || '').toString().trim().toLowerCase();
+    if (!username) {
+      return res.status(400).json({ error: 'author_username is required' });
+    }
+
+    const { data: post, error } = await supabase
+      .from('posts')
+      .insert([{
+        author_username: username,
+        image_url: image_data,
+        character_tags: (character_tags || '').toString().trim(),
+        general_tags: (general_tags || '').toString().trim(),
+        meta_tags: (meta_tags || '').toString().trim()
+      }])
+      .select('id')
+      .single();
+
+    if (error) return res.status(500).json({ error: error.message });
+    return res.status(201).json({ postId: post.id });
+  } catch (error) {
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
