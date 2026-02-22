@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Post — amamus34</title>
+  <title>Post вЂ” amamus34</title>
   <link rel="stylesheet" href="css/style.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/app.js"></script>
@@ -15,19 +15,19 @@
     <aside class="sidebar">
       <h3>Search</h3>
       <div class="search-row">
-        <input type="text" id="sidebar-search" placeholder="Теги...">
+        <input type="text" id="sidebar-search" placeholder="РўРµРіРё...">
         <button type="button" id="sidebar-search-btn">Search</button>
       </div>
       <h3>Tags</h3>
       <div class="tag-list" id="sidebar-tags">
-        <p>—</p>
+        <p>вЂ”</p>
       </div>
       <h3>Statistics</h3>
       <div id="sidebar-stats" class="stat-line">
-        <p>Id: <span id="stat-id">—</span></p>
-        <p>Posted: <span id="stat-posted">—</span></p>
-        <p>by <span id="stat-author">—</span></p>
-        <p>Size: <span id="stat-size">—</span></p>
+        <p>Id: <span id="stat-id">вЂ”</span></p>
+        <p>Posted: <span id="stat-posted">вЂ”</span></p>
+        <p>by <span id="stat-author">вЂ”</span></p>
+        <p>Size: <span id="stat-size">вЂ”</span></p>
         <p>Score: <span id="stat-score">0</span> (<a href="#" id="vote-up-link">vote up</a>)</p>
       </div>
       <h3>Options</h3>
@@ -50,7 +50,7 @@
     </aside>
 
     <main class="main-content post-view">
-      <div id="post-loading">Загрузка...</div>
+      <div id="post-loading">Р—Р°РіСЂСѓР·РєР°...</div>
       <div id="post-content" style="display: none;">
         <div class="image-block">
           <a id="img-link" href="" target="_blank" rel="noopener">
@@ -73,15 +73,15 @@
         <div id="comment-list"></div>
         <div class="add-comment-form" id="comment-form-anchor">
           <div id="reply-indicator" class="reply-to-info" style="display: none;">
-            Ответ на <span id="reply-target-id"></span>
-            <span style="color: red; cursor: pointer;" onclick="cancelReply()">[Отмена]</span>
+            РћС‚РІРµС‚ РЅР° <span id="reply-target-id"></span>
+            <span style="color: red; cursor: pointer;" onclick="cancelReply()">[РћС‚РјРµРЅР°]</span>
           </div>
-          <label>Ваш ник:</label>
+          <label>Р’Р°С€ РЅРёРє:</label>
           <input type="text" id="nickname-input" placeholder="Anonymous" maxlength="50">
-          <label>Текст комментария:</label>
+          <label>РўРµРєСЃС‚ РєРѕРјРјРµРЅС‚Р°СЂРёСЏ:</label>
           <textarea id="comment-input" placeholder="Enter your comment..." maxlength="2000"></textarea>
           <button type="button" id="post-comment-btn" onclick="submitComment()">Post comment</button>
-          <span id="loading-text" style="display: none;">Загрузка...</span>
+          <span id="loading-text" style="display: none;">Р—Р°РіСЂСѓР·РєР°...</span>
         </div>
       </section>
     </main>
@@ -143,7 +143,7 @@
       if (!isReply) {
         var replyBtn = document.createElement('span');
         replyBtn.className = 'reply-btn';
-        replyBtn.textContent = '(Ответить)';
+        replyBtn.textContent = '(РћС‚РІРµС‚РёС‚СЊ)';
         replyBtn.style.cursor = 'pointer';
         replyBtn.style.color = '#4a90d9';
         replyBtn.onclick = function() {
@@ -175,26 +175,61 @@
       link.href = p.image_url;
 
       document.getElementById('stat-id').textContent = p.id.substring(0, 8);
-      document.getElementById('stat-posted').textContent = p.created_at ? new Date(p.created_at).toLocaleString() : '—';
-      document.getElementById('stat-author').textContent = p.author_username || '—';
-      document.getElementById('stat-size').textContent = (p.width && p.height) ? (p.width + 'x' + p.height) : '—';
+      document.getElementById('stat-posted').textContent = p.created_at ? new Date(p.created_at).toLocaleString() : 'вЂ”';
+      document.getElementById('stat-author').textContent = p.author_username || 'вЂ”';
+      document.getElementById('stat-size').textContent = (p.width && p.height) ? (p.width + 'x' + p.height) : 'вЂ”';
       document.getElementById('stat-score').textContent = p.score != null ? p.score : 0;
       document.getElementById('opt-original').href = p.image_url;
 
-      // Safe tag rendering with DOM APIs
+      // Render tags by groups: Character / General / Artist / Meta
       var tagsContainer = document.getElementById('sidebar-tags');
       tagsContainer.innerHTML = '';
-      var tags = [p.character_tags, p.general_tags, p.meta_tags].filter(Boolean).join(', ');
-      if (tags) {
-        var tagList = tags.split(/[\s,]+/).filter(Boolean);
-        tagList.forEach(function(t, i) {
-          if (i > 0) tagsContainer.appendChild(document.createTextNode(' '));
-          var a = document.createElement('a');
-          a.href = 'posts.html?tags=' + encodeURIComponent(t);
-          a.textContent = t;
-          tagsContainer.appendChild(a);
+
+      function splitTags(raw) {
+        if (!raw) return [];
+        return String(raw)
+          .split(/[\s,]+/)
+          .map(function(t) { return t.trim(); })
+          .filter(Boolean);
+      }
+
+      function renderTagGroup(title, tags, typeClass) {
+        if (!tags || tags.length === 0) return;
+
+        var section = document.createElement('div');
+        section.className = 'tag-group';
+
+        var heading = document.createElement('div');
+        heading.className = 'tag-group-title';
+        heading.textContent = title;
+        section.appendChild(heading);
+
+        var list = document.createElement('div');
+        list.className = 'tag-group-list';
+
+        tags.forEach(function(tag) {
+          var item = document.createElement('a');
+          item.href = 'posts.html?tags=' + encodeURIComponent(tag);
+          item.className = 'tag-item ' + typeClass;
+          item.textContent = '? ' + tag;
+          list.appendChild(item);
         });
-      } else {
+
+        section.appendChild(list);
+        tagsContainer.appendChild(section);
+      }
+
+      var characterTags = splitTags(p.character_tags);
+      var generalTags = splitTags(p.general_tags);
+      var artistTags = splitTags(p.author_username);
+      var metaTags = splitTags(p.meta_tags);
+
+      renderTagGroup('Character', characterTags, 'tag-type-character');
+      renderTagGroup('General', generalTags, 'tag-type-general');
+      renderTagGroup('Artist', artistTags, 'tag-type-artist');
+      renderTagGroup('Meta', metaTags, 'tag-type-meta');
+
+      if (tagsContainer.children.length === 0) {
         tagsContainer.innerHTML = '<p>—</p>';
       }
 
@@ -202,7 +237,7 @@
       checkAuth().then(function(user) {
         var commentLink = document.getElementById('link-comment');
         if (user) {
-          commentLink.textContent = 'Оставить комментарий';
+          commentLink.textContent = 'РћСЃС‚Р°РІРёС‚СЊ РєРѕРјРјРµРЅС‚Р°СЂРёР№';
         } else {
           commentLink.textContent = 'Create an account to comment';
         }
@@ -243,7 +278,7 @@
             });
           })
           .catch(function(err) {
-            document.getElementById('comment-list').textContent = 'Ошибка загрузки комментариев: ' + err.message;
+            document.getElementById('comment-list').textContent = 'РћС€РёР±РєР° Р·Р°РіСЂСѓР·РєРё РєРѕРјРјРµРЅС‚Р°СЂРёРµРІ: ' + err.message;
           });
       } else if (window.IS_LOCAL && API_URL) {
         // Fallback to API (local development only)
@@ -276,7 +311,7 @@
           });
         })
         .catch(function(err) {
-          document.getElementById('comment-list').textContent = 'Ошибка загрузки комментариев';
+          document.getElementById('comment-list').textContent = 'РћС€РёР±РєР° Р·Р°РіСЂСѓР·РєРё РєРѕРјРјРµРЅС‚Р°СЂРёРµРІ';
         });
       }
     }
@@ -298,7 +333,7 @@
       var text = (document.getElementById('comment-input').value || '').trim();
 
       if (!text) {
-        alert('Введите текст комментария');
+        alert('Р’РІРµРґРёС‚Рµ С‚РµРєСЃС‚ РєРѕРјРјРµРЅС‚Р°СЂРёСЏ');
         return;
       }
 
@@ -306,11 +341,11 @@
 
       // Validate input lengths
       if (nick.length > 50) {
-        alert('Ник слишком длинный (макс. 50 символов)');
+        alert('РќРёРє СЃР»РёС€РєРѕРј РґР»РёРЅРЅС‹Р№ (РјР°РєСЃ. 50 СЃРёРјРІРѕР»РѕРІ)');
         return;
       }
       if (text.length > 2000) {
-        alert('Комментарий слишком длинный (макс. 2000 символов)');
+        alert('РљРѕРјРјРµРЅС‚Р°СЂРёР№ СЃР»РёС€РєРѕРј РґР»РёРЅРЅС‹Р№ (РјР°РєСЃ. 2000 СЃРёРјРІРѕР»РѕРІ)');
         return;
       }
 
@@ -344,7 +379,7 @@
         loadComments();
       })
       .catch(function(err) {
-        alert('Ошибка: ' + (err.message || 'Не удалось отправить комментарий'));
+        alert('РћС€РёР±РєР°: ' + (err.message || 'РќРµ СѓРґР°Р»РѕСЃСЊ РѕС‚РїСЂР°РІРёС‚СЊ РєРѕРјРјРµРЅС‚Р°СЂРёР№'));
       })
       .finally(function() {
         btn.disabled = false;
@@ -354,39 +389,40 @@
 
     // Load post data - use Supabase directly for production compatibility
     if (!postId) {
-      document.getElementById('post-loading').textContent = 'Пост не найден.';
+      document.getElementById('post-loading').textContent = 'РџРѕСЃС‚ РЅРµ РЅР°Р№РґРµРЅ.';
     } else if (window.sb) {
       // Use Supabase directly (works in production)
       window.sb.from('posts').select('*').eq('id', postId).maybeSingle()
         .then(function(result) {
           if (result.error) throw new Error(result.error.message);
           if (result.data) showPost(result.data);
-          else throw new Error('Пост не найден');
+          else throw new Error('РџРѕСЃС‚ РЅРµ РЅР°Р№РґРµРЅ');
         })
         .catch(function(err) {
-          document.getElementById('post-loading').textContent = err.message || 'Ошибка загрузки.';
+          document.getElementById('post-loading').textContent = err.message || 'РћС€РёР±РєР° Р·Р°РіСЂСѓР·РєРё.';
         });
     } else if (window.IS_LOCAL && API_URL) {
       // Fallback to API (for local development only)
       fetch(API_URL + '/api/posts/' + encodeURIComponent(postId))
         .then(function(res) {
           if (!res.ok) {
-            if (res.status === 404) throw new Error('Пост не найден');
-            throw new Error('Ошибка загрузки');
+            if (res.status === 404) throw new Error('РџРѕСЃС‚ РЅРµ РЅР°Р№РґРµРЅ');
+            throw new Error('РћС€РёР±РєР° Р·Р°РіСЂСѓР·РєРё');
           }
           return res.json();
         })
         .then(function(data) {
           if (data.post) showPost(data.post);
-          else throw new Error('Пост не найден');
+          else throw new Error('РџРѕСЃС‚ РЅРµ РЅР°Р№РґРµРЅ');
         })
         .catch(function(err) {
-          document.getElementById('post-loading').textContent = err.message || 'Ошибка загрузки.';
+          document.getElementById('post-loading').textContent = err.message || 'РћС€РёР±РєР° Р·Р°РіСЂСѓР·РєРё.';
         });
     } else {
       // Neither Supabase nor API available
-      document.getElementById('post-loading').textContent = 'Ошибка загрузки. Supabase недоступен.';
+      document.getElementById('post-loading').textContent = 'РћС€РёР±РєР° Р·Р°РіСЂСѓР·РєРё. Supabase РЅРµРґРѕСЃС‚СѓРїРµРЅ.';
     }
   </script>
 </body>
 </html>
+
