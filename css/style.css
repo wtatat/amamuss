@@ -223,6 +223,26 @@ a:hover { color: #0000cc; }
 }
 .sidebar .tag-list { margin-bottom: 15px; }
 .sidebar .tag-list a { display: block; margin: 2px 0; font-size: 0.9em; }
+.sidebar .tag-group { margin-bottom: 8px; }
+.sidebar .tag-group-title {
+  font-weight: bold;
+  font-size: 2em;
+  line-height: 1.1;
+  color: #000;
+  margin: 4px 0 2px;
+}
+.sidebar .tag-group-list .tag-item {
+  display: block;
+  margin: 1px 0;
+  text-decoration: none;
+  font-size: 0.9em;
+  line-height: 1.15;
+}
+.sidebar .tag-group-list .tag-item:hover { text-decoration: underline; }
+.sidebar .tag-type-character { color: #178a26; }
+.sidebar .tag-type-general { color: #2245d8; }
+.sidebar .tag-type-artist { color: #d84d2c; }
+.sidebar .tag-type-meta { color: #c7861a; }
 .main-content { flex: 1; min-width: 0; }
 
 /* Сетка постов */
@@ -384,4 +404,3 @@ a:hover { color: #0000cc; }
   .sidebar { width: 100%; }
   .posts-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
 }
- 
