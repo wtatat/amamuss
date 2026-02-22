@@ -147,12 +147,13 @@
     <script>
         const SB_URL = 'https://wiqptoiikgjvjtwzpxjd.supabase.co';
         const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndpcXB0b2lpa2dqdmp0d3pweGpkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc0NDE4MzIsImV4cCI6MjA4MzAxNzgzMn0.OeNZKRx-FZN6Mjw9-kuPYy2HEA6Xkb-Sf6xRlscTMUc';
-        const sbClient = supabase.createClient(SB_URL, SB_KEY);
+        const sbClient = window.supabase ? window.supabase.createClient(SB_URL, SB_KEY) : null;
         const imgPath = 'manul.jpg';
         let currentReplyId = null;
         const savedNick = localStorage.getItem('user_nickname');
         if (savedNick) document.getElementById('nickname-input').value = savedNick;
         async function loadComments() {
+            if (!sbClient) return;
             const { data, error } = await sbClient
                 .from('comments')
                 .select('*')
@@ -197,6 +198,7 @@
             document.getElementById('reply-indicator').style.display = 'none';
         }
         async function addComment() {
+            if (!sbClient) return;
             const nickInput = document.getElementById('nickname-input');
             const textInput = document.getElementById('comment-input');
             const nick = nickInput.value.trim() || "Anonymous";
@@ -229,6 +231,7 @@
         for (let i = 0; i < 6; i++) {
             const m = document.createElement('img');
             m.src = imgPath;
+            m.onerror = function() { this.src = '/manul.jpg'; };
             m.className = 'manul manul-bg';
             m.style.width = (Math.random() * 40 + 30) + 'px';
             m.style.left = Math.random() * 100 + 'vw';
@@ -244,6 +247,7 @@
                 lastManulTime = now;
                 const m = document.createElement('img');
                 m.src = imgPath;
+                m.onerror = function() { this.src = '/manul.jpg'; };
                 m.className = 'manul manul-cursor';
                 m.style.width = '20px';
                 m.style.left = e.pageX + 'px';
