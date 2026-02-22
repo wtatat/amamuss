@@ -66,6 +66,8 @@
           <span class="sep">|</span>
           <a href="#comment-form-anchor" id="link-comment">Create an account to comment</a>
         </p>
+        <button type="button" id="request-delete-btn" class="request-delete-btn">Запросить удаление</button>
+        <p id="request-delete-status" class="error" style="display:none;"></p>
       </div>
 
       <section class="comments-section" id="comments-section" style="display: none;">
@@ -87,6 +89,18 @@
     </main>
   </div>
 
+  <div id="delete-request-modal" class="modal-overlay" style="display:none;">
+    <div class="modal-content">
+      <h2>Запрос удаления поста</h2>
+      <p>Укажите причину, почему пост нужно удалить.</p>
+      <textarea id="delete-reason-input" maxlength="2000" rows="6" placeholder="Опишите причину (минимум 10 символов)"></textarea>
+      <div class="modal-buttons">
+        <button type="button" class="btn-decline" id="delete-cancel-btn">Отмена</button>
+        <button type="button" class="btn-accept" id="delete-send-btn">Отправить админу</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     initHeader('post.html');
 
@@ -100,6 +114,65 @@
       document.getElementById('nickname-input').value = savedNick;
     }
 
+    function setDeleteStatus(msg, isError) {
+      var el = document.getElementById('request-delete-status');
+      if (!el) return;
+      el.textContent = msg || '';
+      el.style.display = msg ? 'block' : 'none';
+      el.className = isError ? 'error' : 'success';
+    }
+
+    function openDeleteRequestModal() {
+      setDeleteStatus('', true);
+      var modal = document.getElementById('delete-request-modal');
+      var input = document.getElementById('delete-reason-input');
+      if (input) input.value = '';
+      if (modal) modal.style.display = 'flex';
+    }
+
+    function closeDeleteRequestModal() {
+      var modal = document.getElementById('delete-request-modal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    async function sendDeleteRequest() {
+      if (!postId) return;
+
+      var input = document.getElementById('delete-reason-input');
+      var reason = (input && input.value ? input.value : '').trim();
+      if (reason.length < 10) {
+        alert('Причина должна быть не короче 10 символов');
+        return;
+      }
+
+      var sendBtn = document.getElementById('delete-send-btn');
+      if (sendBtn) sendBtn.disabled = true;
+
+      try {
+        var res = await fetch(API_URL + '/api/deletion-requests', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            post_id: postId,
+            reason: reason
+          })
+        });
+
+        var data = await res.json().catch(function() { return {}; });
+        if (!res.ok) {
+          throw new Error(data.error || 'Не удалось отправить запрос');
+        }
+
+        closeDeleteRequestModal();
+        setDeleteStatus('Запрос отправлен админу.', false);
+      } catch (err) {
+        alert('Ошибка: ' + (err.message || 'Не удалось отправить запрос'));
+      } finally {
+        if (sendBtn) sendBtn.disabled = false;
+      }
+    }
+
     // Search functionality
     document.getElementById('sidebar-search-btn').onclick = function() {
       var q = document.getElementById('sidebar-search').value.trim();
@@ -108,6 +181,9 @@
     document.getElementById('sidebar-search').onkeydown = function(e) {
       if (e.key === 'Enter') document.getElementById('sidebar-search-btn').click();
     };
+    document.getElementById('request-delete-btn').onclick = openDeleteRequestModal;
+    document.getElementById('delete-cancel-btn').onclick = closeDeleteRequestModal;
+    document.getElementById('delete-send-btn').onclick = sendDeleteRequest;
 
     // Escape HTML to prevent XSS
     function escapeHtml(text) {
