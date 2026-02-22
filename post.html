@@ -209,7 +209,11 @@
 
         tags.forEach(function(tag) {
           var item = document.createElement('a');
-          item.href = 'posts.html?tags=' + encodeURIComponent(tag);
+          if (typeClass === 'tag-type-artist') {
+            item.href = 'posts.html?artist=' + encodeURIComponent(String(tag).toLowerCase());
+          } else {
+            item.href = 'posts.html?tags=' + encodeURIComponent(tag);
+          }
           item.className = 'tag-item ' + typeClass;
           item.textContent = '? ' + tag;
           list.appendChild(item);
