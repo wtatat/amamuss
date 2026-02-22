@@ -321,60 +321,35 @@
       btn.disabled = true;
       loading.style.display = 'inline';
 
-      // Use Supabase directly for production compatibility
-      if (window.sb) {
-        window.sb.from('post_comments').insert([{
+      fetch(API_URL + '/api/comments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
           post_id: postId,
           author_name: nick,
           content: text,
-          parent_id: currentReplyId || null,
-          random_id: Math.floor(Math.random() * 99999999).toString()
-        }])
-        .then(function(result) {
-          if (result.error) throw new Error(result.error.message);
-          document.getElementById('comment-input').value = '';
-          cancelReply();
-          loadComments();
+          parent_id: currentReplyId || null
         })
-        .catch(function(err) {
-          alert('Ошибка: ' + (err.message || 'Не удалось отправить комментарий'));
-        })
-        .finally(function() {
-          btn.disabled = false;
-          loading.style.display = 'none';
+      })
+      .then(function(res) {
+        return res.json().then(function(data) {
+          if (!res.ok) throw new Error(data.error || 'Server error');
+          return data;
         });
-      } else {
-        // Fallback to API
-        fetch(API_URL + '/api/comments', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({
-            post_id: postId,
-            author_name: nick,
-            content: text,
-            parent_id: currentReplyId || null
-          })
-        })
-        .then(function(res) {
-          return res.json().then(function(data) {
-            if (!res.ok) throw new Error(data.error || 'Ошибка сервера');
-            return data;
-          });
-        })
-        .then(function(data) {
-          document.getElementById('comment-input').value = '';
-          cancelReply();
-          loadComments();
-        })
-        .catch(function(err) {
-          alert('Ошибка: ' + (err.message || 'Не удалось отправить комментарий'));
-        })
-        .finally(function() {
-          btn.disabled = false;
-          loading.style.display = 'none';
-        });
-      }
+      })
+      .then(function(data) {
+        document.getElementById('comment-input').value = '';
+        cancelReply();
+        loadComments();
+      })
+      .catch(function(err) {
+        alert('Ошибка: ' + (err.message || 'Не удалось отправить комментарий'));
+      })
+      .finally(function() {
+        btn.disabled = false;
+        loading.style.display = 'none';
+      });
     }
 
     // Load post data - use Supabase directly for production compatibility
