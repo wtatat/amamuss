@@ -387,6 +387,8 @@ app.post('/api/deletion-requests', deletionRequestLimiter, async (req, res) => {
     const requesterUserId = sessionUser ? sessionUser.id : null;
     const requesterIp = getClientIp(req);
     const userAgent = (req.headers['user-agent'] || '').toString().slice(0, 500);
+    const primaryFrontend = FRONTEND_URL[0] || `${req.protocol}://${req.get('host')}`;
+    const postUrl = `${primaryFrontend.replace(/\/+$/, '')}/post.html?id=${encodeURIComponent(postId)}`;
 
     const { error } = await supabase
       .from('deletion_requests')
@@ -404,6 +406,7 @@ app.post('/api/deletion-requests', deletionRequestLimiter, async (req, res) => {
     const msg = [
       'New deletion request',
       `Post ID: ${postId}`,
+      `Post URL: ${postUrl}`,
       `User: ${requesterUsername || 'anonymous'}`,
       `IP: ${requesterIp || 'unknown'}`,
       `Reason: ${reasonText}`
