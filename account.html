@@ -27,18 +27,19 @@
 
   <script>
     initHeader('');
-    var user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
-    if (user) {
-      document.getElementById('account-username').textContent = user.username;
-      document.getElementById('logout-link').onclick = function(e) {
-        e.preventDefault();
-        if (typeof logoutUser === 'function') logoutUser();
-        location.href = 'index.html';
-      };
-    } else {
-      document.getElementById('account-info').style.display = 'none';
-      document.getElementById('account-login-required').style.display = 'block';
-    }
+    checkAuth().then(function(user) {
+      if (user) {
+        document.getElementById('account-username').textContent = user.username;
+        document.getElementById('logout-link').onclick = async function(e) {
+          e.preventDefault();
+          await logoutUser(false);
+          location.href = 'index.html';
+        };
+      } else {
+        document.getElementById('account-info').style.display = 'none';
+        document.getElementById('account-login-required').style.display = 'block';
+      }
+    });
   </script>
 </body>
 </html>
