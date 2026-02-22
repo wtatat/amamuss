@@ -1,4 +1,4 @@
-// amamus34 — клиентская библиотека
+// amamus34 вЂ” РєР»РёРµРЅС‚СЃРєР°СЏ Р±РёР±Р»РёРѕС‚РµРєР°
 // API URL - only works locally, NOT on production (static hosting)
 const IS_LOCAL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
 const API_URL = 'https://amamus-birthday.onrender.com';
@@ -33,60 +33,57 @@ async function registerUser(username, password) {
   if (!usernameClean || usernameClean.length < 2) return { ok: false, error: 'Ник от 2 символов' };
   if (!passwordClean || passwordClean.length < 4) return { ok: false, error: 'Пароль от 4 символов' };
 
-  // Only use server API in local development
-  if (IS_LOCAL) {
-    try {
-      const response = await fetch(`${API_URL}/api/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: usernameClean, password: passwordClean })
-      });
-      const result = await response.json();
-      if (!response.ok) return { ok: false, error: result.error || 'Ошибка регистрации' };
+  try {
+    const response = await fetch(`${API_URL}/api/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: usernameClean, password: passwordClean })
+    });
 
-      setCurrentUser(result.user);
-      return { ok: true };
-    } catch (err) {
-      return { ok: false, error: 'Сервер недоступен. Запустите сервер локально (node server.js)' };
+    let result = {};
+    const contentType = (response.headers.get('content-type') || '').toLowerCase();
+    if (contentType.includes('application/json')) {
+      result = await response.json();
+    } else {
+      const rawText = await response.text();
+      result = { error: rawText || 'Invalid server response' };
     }
-  } else {
-    try {
-      const { data, error } = await sb.from('users').insert([{ username: usernameClean, password: passwordClean }]);
-      if (error) throw error;
-      setCurrentUser(data[0]);
-      return { ok: true };
-    } catch (err) {
-      return { ok: false, error: 'Ошибка регистрации: ' + err.message };
-    }
+
+    if (!response.ok) return { ok: false, error: result.error || 'Ошибка регистрации' };
+    setCurrentUser(result.user);
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: 'Сервер недоступен. Попробуйте позже.' };
   }
-
 }
-
 async function loginUser(username, password) {
   const usernameClean = (username || '').trim().toLowerCase();
   const passwordClean = (password || '').trim();
   if (!usernameClean || !passwordClean || passwordClean.length < 4) return { ok: false, error: 'Введите корректные данные' };
 
-  // Only use server API in local development
-  if (IS_LOCAL) {
-    try {
-      const response = await fetch(`${API_URL}/api/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: usernameClean, password: passwordClean })
-      });
-      const result = await response.json();
-      if (!response.ok) return { ok: false, error: result.error || 'Ошибка входа' };
+  try {
+    const response = await fetch(`${API_URL}/api/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: usernameClean, password: passwordClean })
+    });
 
-      setCurrentUser(result.user);
-      return { ok: true };
-    } catch (err) {
-      return { ok: false, error: 'Сервер недоступен. Запустите сервер локально (node server.js)' };
+    let result = {};
+    const contentType = (response.headers.get('content-type') || '').toLowerCase();
+    if (contentType.includes('application/json')) {
+      result = await response.json();
+    } else {
+      const rawText = await response.text();
+      result = { error: rawText || 'Invalid server response' };
     }
+
+    if (!response.ok) return { ok: false, error: result.error || 'Ошибка входа' };
+    setCurrentUser(result.user);
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: 'Сервер недоступен. Попробуйте позже.' };
   }
-
 }
-
 function logoutUser() {
   setCurrentUser(null);
   window.location.reload();
@@ -125,3 +122,4 @@ function initHeader(currentPage) {
 window.checkAuth = checkAuth;
 window.API_URL = API_URL;
 window.IS_LOCAL = IS_LOCAL;
+
