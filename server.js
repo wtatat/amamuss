@@ -11,6 +11,7 @@ require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+app.set('trust proxy', 1);
 
 // Security Middleware
 app.use(helmet({
@@ -63,23 +64,45 @@ function cleanExpiredSessions() {
   }
 }
 
-function setSessionCookie(res, token) {
-  const isProduction = process.env.NODE_ENV === 'production';
-  res.cookie(SESSION_COOKIE, token, {
+function getCookieOptions(req) {
+  const origin = req.headers.origin || '';
+  let originUrl = null;
+  try {
+    originUrl = origin ? new URL(origin) : null;
+  } catch (_) {
+    originUrl = null;
+  }
+
+  const requestHost = (req.get('host') || '').split(':')[0];
+  const originHost = originUrl ? originUrl.hostname : '';
+  const isCrossOrigin = Boolean(originHost && requestHost && originHost !== requestHost);
+  const isHttpsOrigin = Boolean(originUrl && originUrl.protocol === 'https:');
+  const isLocalhost = originHost === 'localhost' || originHost === '127.0.0.1';
+  const secure = isCrossOrigin ? true : (isHttpsOrigin || (process.env.NODE_ENV === 'production' && !isLocalhost));
+
+  return {
     httpOnly: true,
-    secure: isProduction,
-    sameSite: 'lax',
+    secure,
+    sameSite: isCrossOrigin ? 'none' : 'lax',
     maxAge: SESSION_TTL_MS,
     path: '/'
+  };
+}
+
+function setSessionCookie(req, res, token) {
+  const cookieOptions = getCookieOptions(req);
+  res.cookie(SESSION_COOKIE, token, {
+    ...cookieOptions
   });
 }
 
-function clearSessionCookie(res) {
+function clearSessionCookie(req, res) {
+  const cookieOptions = getCookieOptions(req);
   res.clearCookie(SESSION_COOKIE, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    path: '/'
+    httpOnly: cookieOptions.httpOnly,
+    secure: cookieOptions.secure,
+    sameSite: cookieOptions.sameSite,
+    path: cookieOptions.path
   });
 }
 
@@ -164,7 +187,7 @@ app.post('/api/register', authLimiter, async (req, res) => {
 
     const safeUser = { id: data[0].id, username: data[0].username };
     const token = createSession(safeUser);
-    setSessionCookie(res, token);
+    setSessionCookie(req, res, token);
     res.status(201).json({ message: 'User registered', user: safeUser });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -192,7 +215,7 @@ app.post('/api/login', authLimiter, async (req, res) => {
 
     const safeUser = { id: user.id, username: user.username };
     const token = createSession(safeUser);
-    setSessionCookie(res, token);
+    setSessionCookie(req, res, token);
     res.json({ message: 'Login successful', user: safeUser });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -208,7 +231,7 @@ app.get('/api/me', (req, res) => {
 app.post('/api/logout', (req, res) => {
   const token = req.cookies && req.cookies[SESSION_COOKIE];
   if (token) sessions.delete(token);
-  clearSessionCookie(res);
+  clearSessionCookie(req, res);
   return res.json({ message: 'Logout successful' });
 });
 
