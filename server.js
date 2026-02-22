@@ -168,6 +168,26 @@ function getClientIp(req) {
   return String(ip).split(',')[0].trim();
 }
 
+function resolveFrontendBaseUrl(req) {
+  const explicit = (process.env.PUBLIC_SITE_URL || '').trim();
+  if (explicit) return explicit.replace(/\/+$/, '');
+
+  const origin = (req.headers.origin || '').trim();
+  if (origin) return origin.replace(/\/+$/, '');
+
+  const referer = (req.headers.referer || '').trim();
+  if (referer) {
+    try {
+      return new URL(referer).origin.replace(/\/+$/, '');
+    } catch (_) {
+      // ignore invalid referer
+    }
+  }
+
+  if (FRONTEND_URL[0]) return FRONTEND_URL[0].replace(/\/+$/, '');
+  return `${req.protocol}://${req.get('host')}`.replace(/\/+$/, '');
+}
+
 async function notifyAdmin(messageText) {
   const webhook = (process.env.ADMIN_NOTIFY_WEBHOOK_URL || '').trim();
   const botToken = (process.env.ADMIN_TELEGRAM_BOT_TOKEN || '').trim();
@@ -387,8 +407,8 @@ app.post('/api/deletion-requests', deletionRequestLimiter, async (req, res) => {
     const requesterUserId = sessionUser ? sessionUser.id : null;
     const requesterIp = getClientIp(req);
     const userAgent = (req.headers['user-agent'] || '').toString().slice(0, 500);
-    const primaryFrontend = FRONTEND_URL[0] || `${req.protocol}://${req.get('host')}`;
-    const postUrl = `${primaryFrontend.replace(/\/+$/, '')}/post.html?id=${encodeURIComponent(postId)}`;
+    const frontendBaseUrl = resolveFrontendBaseUrl(req);
+    const postUrl = `${frontendBaseUrl}/post.html?id=${encodeURIComponent(postId)}`;
 
     const { error } = await supabase
       .from('deletion_requests')
